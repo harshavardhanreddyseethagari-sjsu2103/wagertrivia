@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wager Trivia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0B0D0F;
+    --panel: #14171A;
+    --panel-border: #232830;
+    --text-primary: #E8E9EA;
+    --text-secondary: #8A9099;
+    --text-tertiary: #565C66;
+    --accent: #FF6B35;
+    --gold: #F4C430;
+    --win: #3DCB7A;
+    --lose: #E5484D;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+  }
+
+  .topbar {
+    border-bottom: 1px solid var(--panel-border);
+    padding: 18px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .topbar h1 { font-size: 15px; font-weight: 600; margin: 0; letter-spacing: 0.02em; }
+
+  .balance-pill {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 100px;
+    padding: 7px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--gold);
+    font-weight: 600;
+  }
+
+  .container { max-width: 560px; margin: 40px auto; padding: 0 20px; }
+
+  .waiting-card, .question-card, .results-card {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 32px;
+    text-align: center;
+  }
+
+  .waiting-card .pulse-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--text-tertiary); display: inline-block; margin-right: 6px;
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  .question-text { font-size: 19px; font-weight: 600; margin-bottom: 24px; }
+
+  .countdown {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    margin-bottom: 20px;
+  }
+
+  .options-row { display: flex; gap: 12px; margin-bottom: 24px; }
+
+  .option-btn {
+    flex: 1;
+    background: #1C2025;
+    border: 2px solid var(--panel-border);
+    color: var(--text-primary);
+    padding: 18px 12px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .option-btn.selected { border-color: var(--accent); background: rgba(255,107,53,0.12); }
+  .option-btn:disabled { opacity: 0.5; cursor: default; }
+
+  .chip-row { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
+
+  .chip-btn {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    color: var(--text-primary);
+    padding: 10px 18px;
+    border-radius: 100px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .chip-btn.selected { border-color: var(--gold); color: var(--gold); background: rgba(244,196,48,0.1); }
+  .chip-btn:disabled { opacity: 0.4; cursor: default; }
+
+  .place-bet-btn {
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 14px;
+    border-radius: 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+  }
+
+  .place-bet-btn:disabled { opacity: 0.4; cursor: default; }
+
+  .bet-status { margin-top: 14px; font-size: 13px; color: var(--text-secondary); min-height: 18px; }
+
+  .live-feed {
+    margin-top: 20px;
+    text-align: left;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    max-height: 100px;
+    overflow-y: auto;
+  }
+
+  .results-card .answer-reveal { font-size: 22px; font-weight: 700; margin-bottom: 16px; }
+  .results-card .answer-reveal.correct-A, .results-card .answer-reveal.correct-B { color: var(--win); }
+
+  .result-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-top: 1px solid var(--panel-border);
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  }
+
+  .result-row:first-of-type { border-top: none; }
+  .result-row .win { color: var(--win); }
+  .result-row .lose { color: var(--lose); }
+
+  #start-round-btn {
+    margin-top: 16px;
+    background: none;
+    border: 1px solid var(--panel-border);
+    color: var(--text-secondary);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>🎲 Wager Trivia</h1>
+  <div class="balance-pill" id="balance-pill">— coins</div>
+</div>
+
+<div class="container">
+
+  <div class="waiting-card" id="waiting-card">
+    <p><span class="pulse-dot"></span>Waiting for the next round...</p>
+    <button id="start-round-btn" onclick="startRound()">Start a round (demo host control)</button>
+  </div>
+
+  <div class="question-card" id="question-card" style="display:none;">
+    <div class="countdown" id="countdown-text">15s to bet</div>
+    <div class="question-text" id="question-text"></div>
+    <div class="options-row" id="options-row"></div>
+    <div class="chip-row" id="chip-row">
+      <button class="chip-btn" data-amount="50" onclick="selectChip(50)">50</button>
+      <button class="chip-btn" data-amount="100" onclick="selectChip(100)">100</button>
+      <button class="chip-btn" data-amount="200" onclick="selectChip(200)">200</button>
+      <button class="chip-btn" id="allin-btn" onclick="selectAllIn()">All-in</button>
+    </div>
+    <button class="place-bet-btn" id="place-bet-btn" onclick="placeBet()" disabled>Place bet</button>
+    <div class="bet-status" id="bet-status"></div>
+    <div class="live-feed" id="live-feed"></div>
+  </div>
+
+  <div class="results-card" id="results-card" style="display:none;"></div>
+
+</div>
+
+<script>
+  const myEmail = "{{USER_EMAIL}}";       // injected server-side
+  const myBalance0 = {{USER_BALANCE}};    // injected server-side
+
+  let socket = null;
+  let currentBalance = myBalance0;
+  let selectedAnswer = null;
+  let selectedAmount = null;
+  let hasBetThisRound = false;
+
+  function updateBalanceDisplay() {
+    document.getElementById("balance-pill").textContent = currentBalance.toFixed(0) + " coins";
+  }
+  updateBalanceDisplay();
+
+  function connect() {
+    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    socket = new WebSocket(wsProtocol + "//" + window.location.host + "/ws");
+    socket.onmessage = (event) => handleMessage(JSON.parse(event.data));
+    socket.onclose = () => console.log("Disconnected.");
+  }
+  connect();
+
+  function handleMessage(data) {
+    if (data.type === "round_start") {
+      showQuestion(data.question, data.seconds);
+    } else if (data.type === "live_bet") {
+      addLiveFeedEntry(`${data.username} bet ${data.amount} on ${data.answer}`);
+    } else if (data.type === "betting_closed") {
+      lockBettingUI();
+    } else if (data.type === "round_resolved") {
+      showResults(data.correct_answer, data.results);
+    } else if (data.type === "bet_confirmed") {
+      currentBalance = data.new_balance;
+      updateBalanceDisplay();
+      document.getElementById("bet-status").textContent = "Bet placed! Good luck.";
+    } else if (data.type === "bet_error") {
+      document.getElementById("bet-status").textContent = "Error: " + data.message;
+    }
+  }
+
+  function showQuestion(question, seconds) {
+    document.getElementById("waiting-card").style.display = "none";
+    document.getElementById("results-card").style.display = "none";
+    document.getElementById("question-card").style.display = "block";
+
+    selectedAnswer = null;
+    selectedAmount = null;
+    hasBetThisRound = false;
+    document.getElementById("bet-status").textContent = "";
+    document.getElementById("live-feed").innerHTML = "";
+    document.getElementById("place-bet-btn").disabled = true;
+
+    document.getElementById("question-text").textContent = question.text;
+
+    const optionsRow = document.getElementById("options-row");
+    optionsRow.innerHTML = `
+      <button class="option-btn" id="opt-A" onclick="selectAnswer('A')">${question.option_a}</button>
+      <button class="option-btn" id="opt-B" onclick="selectAnswer('B')">${question.option_b}</button>
+    `;
+
+    document.querySelectorAll(".chip-btn").forEach(b => { b.classList.remove("selected"); b.disabled = false; });
+    document.querySelectorAll(".option-btn").forEach(b => b.disabled = false);
+
+    let remaining = seconds;
+    const countdownEl = document.getElementById("countdown-text");
+    countdownEl.textContent = remaining + "s to bet";
+    const timer = setInterval(() => {
+      remaining--;
+      countdownEl.textContent = Math.max(remaining, 0) + "s to bet";
+      if (remaining <= 0) clearInterval(timer);
+    }, 1000);
+  }
+
+  function selectAnswer(answer) {
+    if (hasBetThisRound) return;
+    selectedAnswer = answer;
+    document.getElementById("opt-A").classList.toggle("selected", answer === "A");
+    document.getElementById("opt-B").classList.toggle("selected", answer === "B");
+    checkReadyToBet();
+  }
+
+  function selectChip(amount) {
+    if (hasBetThisRound) return;
+    selectedAmount = amount;
+    document.querySelectorAll(".chip-btn").forEach(b => {
+      b.classList.toggle("selected", parseInt(b.dataset.amount) === amount);
+    });
+    checkReadyToBet();
+  }
+
+  function selectAllIn() {
+    if (hasBetThisRound) return;
+    selectedAmount = currentBalance;
+    document.querySelectorAll(".chip-btn").forEach(b => b.classList.remove("selected"));
+    document.getElementById("allin-btn").classList.add("selected");
+    checkReadyToBet();
+  }
+
+  function checkReadyToBet() {
+    document.getElementById("place-bet-btn").disabled = !(selectedAnswer && selectedAmount);
+  }
+
+  function placeBet() {
+    if (!selectedAnswer || !selectedAmount || hasBetThisRound) return;
+    socket.send(JSON.stringify({
+      type: "place_bet",
+      email: myEmail,
+      answer: selectedAnswer,
+      amount: selectedAmount
+    }));
+    hasBetThisRound = true;
+    document.getElementById("place-bet-btn").disabled = true;
+    document.querySelectorAll(".option-btn, .chip-btn").forEach(b => b.disabled = true);
+  }
+
+  function lockBettingUI() {
+    document.querySelectorAll(".option-btn, .chip-btn").forEach(b => b.disabled = true);
+    document.getElementById("place-bet-btn").disabled = true;
+    document.getElementById("countdown-text").textContent = "Betting closed — revealing soon...";
+  }
+
+  function addLiveFeedEntry(text) {
+    const feed = document.getElementById("live-feed");
+    const div = document.createElement("div");
+    div.textContent = "› " + text;
+    feed.appendChild(div);
+    feed.scrollTop = feed.scrollHeight;
+  }
+
+  function showResults(correctAnswer, results) {
+    document.getElementById("question-card").style.display = "none";
+    const card = document.getElementById("results-card");
+    card.style.display = "block";
+
+    // Find OUR OWN result in the list (matching by email) and update
+    // the balance pill to reflect the actual post-payout balance from
+    // the server — this is the piece that was missing: bet_confirmed
+    // only reflected the DEDUCTION, never the payout from winning.
+    const myResult = results.find(r => r.email === myEmail);
+    if (myResult) {
+      currentBalance = myResult.new_balance;
+      updateBalanceDisplay();
+    }
+
+    let html = `<div class="answer-reveal correct-${correctAnswer}">Correct answer: ${correctAnswer}</div>`;
+    if (results.length === 0) {
+      html += `<p style="color:var(--text-tertiary); font-size:13px;">Nobody placed a bet this round.</p>`;
+    } else {
+      results.forEach(r => {
+        const won = r.payout > 0;
+        html += `
+          <div class="result-row">
+            <span>${r.username} bet ${r.wager_amount} on ${r.chosen_answer}</span>
+            <span class="${won ? 'win' : 'lose'}">${won ? '+' + r.payout.toFixed(0) : 'lost ' + r.wager_amount}</span>
+          </div>
+        `;
+      });
+    }
+    html += `<button id="start-round-btn" onclick="backToWaiting()" style="margin-top:20px;">Next round</button>`;
+    card.innerHTML = html;
+  }
+
+  function backToWaiting() {
+    document.getElementById("results-card").style.display = "none";
+    document.getElementById("waiting-card").style.display = "block";
+  }
+
+  function startRound() {
+    fetch("/admin/start-round", { method: "POST" })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          alert("Could not start round: " + data.error);
+        }
+        // On success, we don't need to do anything here — the actual
+        // UI update happens when the WebSocket broadcast arrives via
+        // handleMessage(), not from this fetch response directly.
+      })
+      .catch(err => alert("Request failed: " + err));
+  }
+</script>
+
+</body>
+</html>

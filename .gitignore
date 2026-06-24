@@ -1,0 +1,15 @@
+# Secrets — never commit these
+.env
+
+# Python cache/environment junk
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# macOS junk
+.DS_Store
+
+# Editor junk
+*.swp
+.vscode/
+.idea/
