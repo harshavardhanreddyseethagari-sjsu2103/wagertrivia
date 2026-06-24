@@ -6,3 +6,4 @@ itsdangerous
 httpx
 sqlalchemy
 psycopg2-binary
+requests
