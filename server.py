@@ -60,6 +60,26 @@ def on_startup():
     init_db()
 
 
+@app.get("/leaderboard")
+async def get_leaderboard():
+    """
+    Returns the top users by current balance. This is a READ-ONLY
+    query — no state changes here, just asking Postgres to sort and
+    hand back existing data. order_by(User.balance.desc()) means
+    "highest balance first"; limit(10) caps it to the top 10.
+    """
+    db = SessionLocal()
+    top_users = db.query(User).order_by(User.balance.desc()).limit(10).all()
+
+    leaderboard = [
+        {"rank": i + 1, "name": u.name, "email": u.email, "balance": u.balance}
+        for i, u in enumerate(top_users)
+    ]
+    db.close()
+
+    return {"leaderboard": leaderboard}
+
+
 @app.get("/")
 async def homepage(request: Request):
     session_user = request.session.get("user")

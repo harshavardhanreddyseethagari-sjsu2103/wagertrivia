@@ -197,6 +197,11 @@
 
   <div class="results-card" id="results-card" style="display:none;"></div>
 
+  <div class="waiting-card" id="leaderboard-card" style="margin-top:20px; text-align:left;">
+    <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-tertiary); margin-bottom:12px;">Leaderboard</div>
+    <div id="leaderboard-list" style="font-family:'IBM Plex Mono',monospace; font-size:13px;"></div>
+  </div>
+
 </div>
 
 <script>
@@ -231,6 +236,7 @@
       lockBettingUI();
     } else if (data.type === "round_resolved") {
       showResults(data.correct_answer, data.results);
+      fetchLeaderboard();
     } else if (data.type === "bet_confirmed") {
       currentBalance = data.new_balance;
       updateBalanceDisplay();
@@ -366,6 +372,22 @@
     document.getElementById("results-card").style.display = "none";
     document.getElementById("waiting-card").style.display = "block";
   }
+
+  function fetchLeaderboard() {
+    fetch("/leaderboard")
+      .then(res => res.json())
+      .then(data => {
+        const list = document.getElementById("leaderboard-list");
+        list.innerHTML = data.leaderboard.map(entry => {
+          const isMe = entry.email === myEmail;
+          return `<div style="display:flex; justify-content:space-between; padding:4px 0; color:${isMe ? 'var(--accent)' : 'var(--text-secondary)'}">
+            <span>#${entry.rank} ${entry.name}</span>
+            <span style="color:var(--gold)">${entry.balance.toFixed(0)}</span>
+          </div>`;
+        }).join("");
+      });
+  }
+  fetchLeaderboard();
 
   function startRound() {
     fetch("/admin/start-round", { method: "POST" })
